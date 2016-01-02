@@ -6,7 +6,7 @@ class Router
 	protected $request;
 	protected $route;
 	protected $routes = [];
-	protected $basePath;
+	protected $basePath = '';
 	protected $match = [];
 
 	public function __construct(Application $app)
