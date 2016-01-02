@@ -1,11 +1,17 @@
 <?php namespace App\Controllers;
 
+use System\View;
+
+use App\Models\User;
+
 class HomeController
 {
+	protected $user;
 	protected $view;
 
-	public function __construct(\System\View $view)
+	public function __construct(View $view, User $user)
 	{
+		$this->user = $user;
 		$this->view = $view;
 	}
 
@@ -16,6 +22,7 @@ class HomeController
 
 	public function about()
 	{
-		$this->view->render('about', ['name' => 'Catalin']);
+		$username = $this->user->getUsername();
+		$this->view->render('about', ['name' => $username]);
 	}
 }
