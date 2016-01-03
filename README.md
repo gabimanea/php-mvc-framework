@@ -13,7 +13,7 @@ Example:
 
 $app = new System\Application();
 
-$app->getInstance('router)->setBasePath('mvc/public/');
+$app->getInstance('router')->setBasePath('mvc/public/');
 
 $app->bind('HomeController', function() use ($app) {
 	return new App\Controllers\HomeController($app['view']);
