@@ -1,6 +1,6 @@
 # php-mvc-framework
 
-Building an framework with PHP.
+Building a framework with PHP.
 
 Documentation still in progress...
 
