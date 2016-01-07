@@ -2,64 +2,65 @@
 
 class Application extends Container
 {
-	public function __construct() 
+	public function __construct()
 	{
 		$this->setRequest();
 		$this->setRouteCollection();
 		$this->setRouter();
-		$this->setView();
+		$this->setDispatcher();
 	}
 
 	protected function setRequest()
 	{
-		$this->bind("request", function () {
+		$this->save('request', function() {
 			return new Request($_SERVER);
 		});
 
-		$this->singleton('request');
+		$this->saveInstance('request');
 	}
 
 	protected function setRouteCollection()
 	{
-		$this->bind("route", function () {
+		$this->save('route', function() {
 			return new RouteCollection();
 		});
 
-		$this->singleton('route');
+		$this->saveInstance('route');
 	}
 
 	protected function setRouter()
 	{
-		$this->bind('router', function () {
-			$router = new Router($this);
-			$router->setBasePath('mvc2/public/');
-
-			return $router;
+		$this->save('router', function() {
+			return new Router(
+				$this->getInstance('request'), 
+				$this->getInstance('route'), 'mvc3/public/'
+			    );
 		});
 
-		$this->singleton('router');
+		$this->saveInstance('router');
 	}
 
-	protected function setView()
+	protected function setDispatcher()
 	{
-		$this->bind('view', function() {
-			return new View();
+		$this->save('dispatcher', function() {
+			return new Dispatcher($this);
 		});
+
+		$this->saveInstance('dispatcher');
 	}
 
-	public function post($pattern, $call, $name = null) 
-	{
-		$this->getInstance('route')->createRoute("POST", $pattern, $call, $name);
-	}
-
-	public function get($pattern, $call, $name = null) 
+	public function get($pattern, $call, $name = null)
 	{
 		$this->getInstance('route')->createRoute("GET", $pattern, $call, $name);
 	}
 
+	public function post($pattern, $call, $name = null)
+	{
+		$this->getInstance('route')->createRoute("POST", $pattern, $call, $name);
+	}		
+
 	public function run()
 	{
-		$this->getInstance('router')->dispatch();
-
+		$this->getInstance('dispatcher')->dispatch();
 	}
 }

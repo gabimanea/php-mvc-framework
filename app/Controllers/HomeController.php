@@ -1,28 +1,21 @@
 <?php namespace App\Controllers;
 
-use System\View;
-
-use App\Models\User;
-
 class HomeController
 {
-	protected $user;
 	protected $view;
 
-	public function __construct(View $view, User $user)
+	public function __construct(\System\View $view)
 	{
-		$this->user = $user;
 		$this->view = $view;
 	}
 
 	public function index()
 	{
-		$this->view->render('index', ['message' => 'Hello']);
+		$this->view->render('index');
 	}
 
-	public function about()
+	public function about($args)
 	{
-		$username = $this->user->getUsername();
-		$this->view->render('about', ['name' => $username]);
+		var_dump($args);
 	}
 }

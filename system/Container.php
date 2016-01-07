@@ -1,130 +1,155 @@
 <?php namespace System;
 
-class Container implements \ArrayAccess
+
+class Container
 {
 	/**
-	 * Container bindings
+	 * Contains pairs of key\callable elements
+	 * 
 	 * @var array
 	 */
-	protected $bindings = [];
+	private $container = [];
 
 	/**
-	 * Instances created
+	 * Contains pairs of key\instances elements
+	 * 
 	 * @var array
 	 */
-	protected $instances = [];
+	private $instances = [];
 
 	/**
-	 * Bind a new dependency
+	 * Save the pair key\callable in container's array
 	 * 
-	 * @param  string   $key
-	 * @param  callable $closure
+	 * @param  string   $key      An alias
+	 * @param  callable $callable Closure
+	 */
+	public function save($key, callable $callable) 
+	{
+		$this->container[$key] = $callable;
+	}
+
+	/**
+	 * Create a new intance for a given alias from container
+	 * 
+	 * @param  string $key Alias
+	 * @return Object
 	 * @throws \Exception
 	 */
-	public function bind($key = null, callable $closure)
+	public function createInstance($key) 
 	{
-		if ($key && is_callable($closure)) {
-			$this->bindings[$key] = $closure;
-		} else {
-			throw new \Exception('The bind method needs a key name and a closure');
+		if ($this->container[$key]) {
+			return $this->container[$key]();
 		}
+
+		throw new \Exception("[$key] is not available in the container");
 	}
 
 	/**
-	 * Resolve a dependency from the $bindings array
+	 * Save an instance for a given alias from the container's array
 	 * 
-	 * @param  string $key
-	 * @return mixed	 
-	 **/
-	public function resolve($key = null) 
-	{
-		if ($key) {
-			if (isset($this->bindings[$key])) {
-				return call_user_func($this->bindings[$key]);
-			} else {
-				throw new \Exception('The resolve method could not 
-					found a match based on the provided key name');
-			}
-		} else {
-			throw new \Exception('The resolve method needs a key name');
-		}
-	}
-
-	/**
-	 * Create a new instance of an already binded dependency
-	 *
-	 * @param  string $key
-	 * @return [type]      [description]
+	 * @param  string $key Alias
 	 */
-	public function singleton($key = null)
+	public function saveInstance($key) 
 	{
-		if ($key) {
-			$this->instances[$key] = $this->resolve($key);
-		} else {
-			\Exception('The singleton method needs the key of an already binded dependency');
-		}
+		$this->instances[$key] = $this->createInstance($key);
 	}
 
 	/**
-	 * Retrieve an instance from the $instances array ( acts like a singleton )
-	 * @param  string $key
+	 * Get an intance for a given alias from the instances's array
+	 * 
+	 * @param  string $key Alias
+	 * @return Object
 	 * @throws \Exception
-	 * @return object
 	 */
 	public function getInstance($key) 
 	{
-		if ($key) {
-			if (isset($this->instances[$key]) && isset($this->bindings[$key])) {
-				return $this->instances[$key];
-			} else {
-				throw new \Exception('The provided key name has to be first created as singleton');
-			}
-		} else {
-			throw new \Exception('The getInstance method needs a key name');
+		if ($this->instances[$key]) {
+			return $this->instances[$key];
 		}
+
+		throw new \Exception("No instance saved in container for [$key]");
 	}
 
 	/**
-	 * Whether on offset exists
+	 * Build and object and object's dependencies
 	 * 
-	 * @param  string  $key 
-	 * @return boolean  
+	 * @param  string $className 
+	 * @return Object
+	 * @throws \Exception
 	 */
-	public function offsetExists($key) 
+	public function buildObject($className) 
 	{
-		return isset($this->bindings[$key]);
+		// create a ReflectionClass object and pass the $className
+		$reflector = new \ReflectionClass($className);
+
+		// check if the inspected class can be instantiated
+		if (!$reflector->isInstantiable()) {
+			throw new \Exception("[$className] is not instantiable");
+		}
+
+		// get the constructor of the class
+		// if exists, it returns a ReflectionMethod object
+		$constructor = $reflector->getConstructor();
+
+		// check if constructor exists, otherwise return a new object of the class
+		if (!$constructor) {
+			return new $className();
+		}
+
+		// get constructor parameters in an array as ReflectionParameter objects
+		// return an empty array if no parameters are found
+		$parameters = $constructor->getParameters();
+
+		// build object's dependencies
+		$dependencies = $this->BuildObjectDependencies($parameters);
+
+		// return a new instance of the inspected class
+		// passing all the dependencies in the constructor
+		return $reflector->newInstanceArgs($dependencies);
 	}
 
 	/**
-	 * Offset to retrieve
+	 * Build object's dependencies
 	 * 
-	 * @param  string $key 
-	 * @return mixed  
+	 * @param  array $parameters
+	 * @return array
 	 */
-	public function offsetGet($key) 
+	protected function buildObjectDependencies($parameters)
 	{
-		return $this->resolve($key);
+		// store dependencies here
+		$dependencies = [];
+
+		foreach ($parameters as $parameter) {
+			// check if parameter has a class as type hint
+			$dependency = $parameter->getClass();
+
+			if (!is_null($dependency)) {
+				// perform the steps from BuildObject() method to all parameters
+				$dependencies[] = $this->buildObject($parameter->getClass()->name);
+
+			} else {
+				// verify the parameters without a type hinted class
+				$dependencies[] = $this->buildObjectUnknownDependencies($parameter);
+			}
+		}
+
+		return $dependencies;
 	}
 
 	/**
-	 * Assign a value to the specified offset
+	 * Build object's dependencies that are unknown
 	 * 
-	 * @param  mixed $key 
-	 * @param  mixed $value
+	 * @param  string $parameter 
+	 * @return mixed
+	 * @throws  \Exception
 	 */
-	public function offsetSet($key, $value) 
+	protected function buildObjectUnknownDependencies($parameter)
 	{
-		$this->bind($key, $value);
-	}
-
-	/**
-	 * Unset an offset
-	 * 
-	 * @param  string $key
-	 */
-	public function offsetUnset($key) 
-	{
-		unset($this->bindings[$key]);
-		reset($this->bindings);
+		// check if parameter has default value
+		if ($parameter->isDefaultValueAvailable()) {
+			return $parameter->getDefaultValue();
+		}
+		
+		throw new \Exception("There was a problem building the object");
 	}
 }

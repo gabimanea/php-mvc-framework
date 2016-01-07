@@ -1,9 +1,11 @@
 <?php
 
-$app->get('/', 'HomeController@index', 'home');
+$app->get('/', 'App\Controllers\HomeController@index', 'home');
 
-$app->get('/about', 'HomeController@about', 'about');
+$app->get('/:name', 'App\Controllers\HomeController@index', 'home');
 
-$app->get('/contact', function() {
-  echo "You can contact me at pocsanjr@gmail.com";
-}, "contact");
+$app->get('/index', 'App\Controllers\HomeController@index', 'home');
+
+$app->get('/home/index', 'App\Controllers\HomeController@index', 'home');
+
+$app->get('/about/:name/:age', 'App\Controllers\HomeController@about', 'about');

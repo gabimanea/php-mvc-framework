@@ -4,6 +4,6 @@
 	<title></title>
 </head>
 <body>
-   <?=$message;?>
+    Hello world
 </body>
 </html>
