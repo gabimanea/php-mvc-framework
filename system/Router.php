@@ -18,7 +18,7 @@ class Router
 		$this->setBasePath($basePath);
 	}
 
-	protected function setBasePath($basePath)
+	public function setBasePath($basePath)
 	{
 		$this->basePath = $basePath;
 	}
